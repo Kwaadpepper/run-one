@@ -1,0 +1,11 @@
+#!/bin/bash
+if [[ ${@} != "" ]];then
+  exec=$(basename $1)
+  if [[ ! -x $1 && ! -x $(which $1) ]];then echo "program $1 not found"; exit; fi;
+  desktop=$(xdotool get_desktop)
+  window=$(xdotool search --desktop $desktop --class $1 | head -n 1);
+  if [[ $window == "" ]]; then echo "launching $1"; $1 & exit; fi;
+  xdotool windowactivate $window;
+else
+ echo "Give a program to run one instance";
+fi
