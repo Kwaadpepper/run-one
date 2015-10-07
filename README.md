@@ -19,6 +19,7 @@ This script intend is to fill the gaps of run-one.
 This is based on xdotool, if the window is found, the it may be used, otherwise it launches with your arguments.
 
 **Usage**
+
 ```run-single options program programoptions```
 eg : ```run-single -s -n firefox http://spacelamb.12wave.com/```
 
