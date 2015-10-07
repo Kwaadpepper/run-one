@@ -21,5 +21,6 @@ This is based on xdotool, if the window is found, the it may be used, otherwise 
 **Usage**
 
 ```run-single options program programoptions```
+
 eg : ```run-single -s -n firefox http://spacelamb.12wave.com/```
 
