@@ -1,0 +1,74 @@
+#!/bin/bash
+
+for i in "$@"
+do
+case $i in
+    -n|--no-activate|--noactivate)
+    noactivate="$i"
+    shift
+    ;;
+    -s|--silence)
+    silence="$i"
+    shift
+    ;;
+    -h|--help)
+    echo -e "\teg: run-single [option] [program/programpath]\n\tsupported options: -n (--noactivate), -s (--silence)";
+    exit;
+    ;;
+    *)
+    ;;
+esac
+done
+
+program=$1
+program=$(echo $program | sed 's/-//g')
+
+if [[ ${@} != "" ]];then
+  exec=$(basename $program)
+  pgrep=$(pgrep $exec)
+  if [[ $pgrep != "" && $noactivate != "" ]];then exit; fi;
+  execpid="";
+  execpath="";
+  if [[ $pgrep != "" ]];then
+    execpid=$(echo $pgrep | head -n1 | xargs ps -o pid | tail -n+2);
+    execpath=$(echo $pgrep | head -n1 | xargs ps -o command | tail -n+2);
+  fi;
+  if [[ ! -x $exec && ! -x $(which $exec) ]];then echo "program $program not found"; exit; fi;
+  desktop=$(xdotool get_desktop)
+  window=$(xdotool search --onlyvisible --desktop $desktop --class $exec 2>/dev/null | head -n 1);
+  # try to find with pid
+  if [[ $window == "" && $execpid != "" ]];then window=$(xdotool search --onlyvisible --desktop $desktop --pid $execpid 2>/dev/null | head -n 1); fi;
+  #try without desktop
+  window=$(xdotool search --onlyvisible --class $exec 2>/dev/null | head -n 1);
+  #Checking against wmctrl
+  if [[ $(wmctrl -xl |sed  's/\s\s*/ /g' |cut -d' ' -f3 |grep -i $exec) == "" ]];then window=""; fi;
+  # if no window could be found then launch program hopping it will activate instead
+  # Since there is no way to restore from tray and natural convention want that a
+  # single instance program will activate instead of running new instance
+  if [[ $window == "" ]];then
+    #launching $exec
+    if [[ $silence != "" ]]; then $exec ${@#$program} >/dev/null 2>/dev/null&
+    else $exec ${@#$program}  & fi;
+    # wait max 10 seconds
+    maxwait=100
+    until pid=$(xdotool search --onlyvisible --class $exec 2>/dev/null);do
+      # waiting for $exec to appear
+      sleep 0.1
+      if [[ $maxwait -le 0 ]];then break; fi;
+      let maxwait-=1
+    done
+  fi;
+  # activating $window
+  success=$(xdotool windowactivate $window 2>&1);
+  if [[ $success != "" ]];then
+   # activation failed trying 2nd method
+   success=$(xdotool search --desktop $desktop --class $program windowactivate 2>&1);
+  fi;
+  if [[ $success != "" ]];then
+   # activation failed trying 3rd method
+   success=$(xdotool search --class $program windowactivate 2>&1);
+  fi;
+else
+ echo "Give a program to run one instance";
+fi
+
